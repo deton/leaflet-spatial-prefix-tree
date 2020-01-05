@@ -172,6 +172,53 @@ var hashAdapter = {
   }
 };
 
+var RANGE100 = [];
+for (var i = 0; i < 10; i++) {
+  RANGE100.push('0' + i);
+}
+for (var i = 10; i < 100; i++) {
+  RANGE100.push('' + i);
+}
+
+var jisx0410meshAdapter = {
+  range: RANGE100,
+  encode: function( centroid, precision ){
+    var zoom = precision-1;
+    if( zoom < 6 ){
+      return '' + cal_meshcode1( centroid.lat, centroid.lng );
+    }else if( zoom < 10 ){
+      return '' + cal_meshcode1( centroid.lat, centroid.lng );
+    }else if( zoom < 14 ){
+      return '' + cal_meshcode2( centroid.lat, centroid.lng );
+    }else if( zoom < 19 ){
+      return '' + cal_meshcode3( centroid.lat, centroid.lng );
+    }
+  },
+  bbox: function( str ){
+    var box = meshcode_to_latlong_grid( '' + str );
+    return { minlat: box.lat0, minlng: box.long0, maxlat: box.lat1, maxlng: box.long1 };
+  },
+  layers: function( currentHash, zoom ){
+    var layers = {};
+    if( zoom >= 6 ){
+      layers[ currentHash.substr( 0, 4 ) ] = true;
+    }
+    if( zoom >= 10 ){
+      layers[ currentHash.substr( 0, 6 ) ] = true;
+    }
+    if( zoom >= 14 ){
+      layers[ currentHash.substr( 0, 8 ) ] = true;
+    }
+    return layers;
+  },
+  labels: function( hash ){
+    return {
+      long: hash,
+      short: hash.substr(-2, 2)
+    };
+  }
+};
+
 var currentHash;
 var adapter = quadAdapter;
 // var adapter = hashAdapter;
@@ -194,6 +241,7 @@ var prevHash = 'NOTAHASH';
 var changeHashFunction = function( algorithm ){
   if( algorithm == 'geohash' ) adapter = hashAdapter;
   else if( algorithm == 'slippy' ) adapter = slippyAdapter;
+  else if( algorithm == 'jisx0410mesh' ) adapter = jisx0410meshAdapter;
   else adapter = quadAdapter;
   prevHash = 'NOTAHASH'; // force hash to regenerate
   updateLayer();
@@ -206,6 +254,19 @@ var zoomToHashChars = function( zoom ){
   return 1 + Math.floor( zoom / 3 );
 };
 
+var zoomToMeshChars = function( zoom ){
+  if( zoom < 6 ){
+    return 4;
+  }else if( zoom < 10 ){
+    return 4;
+  }else if( zoom < 14 ){
+    return 6;
+  }else if( zoom < 19 ){
+    return 8;
+  }
+  return 8;
+};
+
 function updateLayer(){
 
   var zoom = map.getZoom();
@@ -216,18 +277,20 @@ function updateLayer(){
 
   if( adapter === hashAdapter ){
     hashLength = zoomToHashChars( zoom );
+  }else if( adapter === jisx0410meshAdapter ){
+    hashLength = zoomToMeshChars( zoom );
   }
 
   var hashPrefix = currentHash.substr( 0, hashLength );
 
-  // console.log( 'zoom', zoom );
+  console.log( 'zoom', zoom );
   // console.log( 'prevHash', prevHash );
-  // console.log( 'hashPrefix', hashPrefix );
+  console.log( 'hashPrefix', hashPrefix );
 
   // performance tweak
   // @todo: not that performant?
   if( prevHash != hashPrefix ){
-  // console.log( 'zoom', zoom );
+    // console.log( 'zoom', zoom );
     layerGroup.clearLayers();
 
     var layers = adapter.layers( currentHash, zoom );
@@ -270,6 +333,9 @@ function drawLayer( prefix, showDigit ){
 
     var hash = '' + prefix + n;
     var bbox = adapter.bbox( hash );
+    if( bbox === null ){
+      return;
+    }
 
     var bounds = L.latLngBounds(
       L.latLng( bbox.maxlat, bbox.minlng ),
@@ -292,7 +358,7 @@ map.on('moveend', updateLayer);
 changeHashFunction( 'quadtree' );
 // updateLayer();
 
-map.on('mousemove', function( e ){
-  mousePositionEvent = e;
-  updateLayer();
-});
+//map.on('mousemove', function( e ){
+//  mousePositionEvent = e;
+//  updateLayer();
+//});
