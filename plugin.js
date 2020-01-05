@@ -27,7 +27,12 @@ var layerGroup = L.layerGroup();
 map.addLayer( layerGroup );
 
 var quadAdapter = {
-  range: ['0','1','2','3'],
+  range: function ( prefix ){
+    return ['0','1','2','3'].map( function( n ){
+      var hash = '' + prefix + n;
+      return hash;
+    } );
+  },
   encode: function( centroid, precision ){
     var zoom = precision-1;
     var tile = getTileXYZ( centroid.lat, centroid.lng, zoom );
@@ -146,7 +151,12 @@ function SlippyToQuad(x, y, z) {
 // }
 
 var hashAdapter = {
-  range: Object.keys( BASE32_CODES_DICT ),
+  range: function ( prefix ){
+    return Object.keys( BASE32_CODES_DICT ).map( function( n ){
+      var hash = '' + prefix + n;
+      return hash;
+    } );
+  },
   encode: function( centroid, precision ){
     return '' + geohash.encode( centroid.lat, centroid.lng, precision );
   },
@@ -173,15 +183,40 @@ var hashAdapter = {
 };
 
 var RANGE100 = [];
-for (var i = 0; i < 10; i++) {
-  RANGE100.push('0' + i);
+for( var i = 0; i < 10; i += 2 ){
+  RANGE100.push( '0' + i );
 }
-for (var i = 10; i < 100; i++) {
-  RANGE100.push('' + i);
+for( var j = 1; j < 10; j++ ){
+  for( var i = j % 2; i < 10; i += 2 ){
+    RANGE100.push( '' + ( j*10 + i ) );
+  }
+}
+
+var RANGE64 = [];
+for( var i = 0; i < 8; i += 2 ){
+  RANGE64.push( '0' + i );
+}
+for( var j = 1; j < 8; j++ ){
+  for( var i = j % 2; i < 8; i += 2 ){
+    RANGE64.push( '' + ( j*10 + i ) );
+  }
 }
 
 var jisx0410meshAdapter = {
-  range: RANGE100,
+  range: function ( prefix ){
+    function tohash( subkeys ){
+      return subkeys.map( function( n ){
+        var hash = '' + prefix + n;
+        return hash;
+      } );
+    }
+    if( prefix.length < 6 ){
+      return tohash( RANGE100 ); // TODO
+    }else if( prefix.length == 6 ){
+      return tohash( RANGE64 );
+    }
+    return tohash( RANGE100 );
+  },
   encode: function( centroid, precision ){
     var zoom = precision-1;
     if( zoom < 6 ){
@@ -329,9 +364,8 @@ function drawRect( bounds, hash, showDigit ){
 }
 
 function drawLayer( prefix, showDigit ){
-  adapter.range.forEach( function( n ){
+  adapter.range( prefix ).forEach( function( hash ){
 
-    var hash = '' + prefix + n;
     var bbox = adapter.bbox( hash );
     if( bbox === null ){
       return;
