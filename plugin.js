@@ -204,18 +204,54 @@ for( var j = 1; j < 8; j++ ){
 
 var jisx0410meshAdapter = {
   range: function ( prefix ){
+    if( prefix.length < 6 ){
+      var hashlist = [];
+      var center = map.getCenter();
+      var cmesh = cal_meshcode1( center.lat, center.lng );
+      var vertparam = cmesh.substr( 0, 4 );
+      for( var i = +cmesh - 5; i < +cmesh + 5; i++ ){
+        var mesh = '' + i;
+        var horizparam = mesh.substr( 4, 2 );
+        for( var j = +vertparam - 5; j < +vertparam + 5; j++ ){
+          hashlist.push( '' + j + horizparam );
+        }
+      }
+      /*
+      var bounds = map.getBounds().pad( 0.5 );
+      var ne = bounds.getNorthEast();
+      var nw = bounds.getNorthWest();
+      var se = bounds.getSouthEast();
+      var sw = bounds.getSouthWest();
+      var nemesh = cal_meshcode1( ne.lat, ne.lng );
+      var nwmesh = cal_meshcode1( nw.lat, nw.lng );
+      var semesh = cal_meshcode1( se.lat, se.lng );
+      var swmesh = cal_meshcode1( sw.lat, sw.lng );
+      var nmesh = +nemesh.substr( 0, 4 );
+      var smesh = +semesh.substr( 0, 4 );
+      for( var i = +swmesh; i < +semesh; i++ ){ //TODO
+        var mesh = '' + i;
+        var horizparam = mesh.substr( 4, 2 );
+        for( var j = smesh; j < nmesh; j++ ){
+          hashlist.push( '' + j + horizparam );
+          if( hashlist.length >= 100 ){
+            console.log(hashlist);
+            return hashlist;
+          }
+        }
+      }
+      */
+      console.log(hashlist);
+      return hashlist;
+    }else if( prefix.length == 6 ){
+      return tohash( RANGE64 );
+    }
+    return tohash( RANGE100 );
     function tohash( subkeys ){
       return subkeys.map( function( n ){
         var hash = '' + prefix + n;
         return hash;
       } );
     }
-    if( prefix.length < 6 ){
-      return tohash( RANGE100 ); // TODO
-    }else if( prefix.length == 6 ){
-      return tohash( RANGE64 );
-    }
-    return tohash( RANGE100 );
   },
   encode: function( centroid, precision ){
     var zoom = precision-1;
