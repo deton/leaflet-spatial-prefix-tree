@@ -204,45 +204,25 @@ for( var j = 1; j < 8; j++ ){
 
 var jisx0410meshAdapter = {
   range: function ( prefix ){
-    if( prefix.length < 6 ){
-      var hashlist = [];
+    if( prefix.length < 4 ){
       var center = map.getCenter();
-      var cmesh = cal_meshcode1( center.lat, center.lng );
-      var vertparam = cmesh.substr( 0, 4 );
+      // JISX0410 domain of definition
+      if( center.lat < 0 || center.lat >= 66.66 || center.lng < 100 || center.lng >= 180 ){
+        return [];
+      }
+      var hashlist = [];
+      var cmesh = cal_meshcode1( center.lat, center.lng ).substring(2);
+      var vertparam = cmesh.substr( 0, 2 );
       for( var i = +cmesh - 5; i < +cmesh + 5; i++ ){
         var mesh = '' + i;
-        var horizparam = mesh.substr( 4, 2 );
+        var horizparam = mesh.substr( 2, 2 );
         for( var j = +vertparam - 5; j < +vertparam + 5; j++ ){
           hashlist.push( '' + j + horizparam );
         }
       }
-      /*
-      var bounds = map.getBounds().pad( 0.5 );
-      var ne = bounds.getNorthEast();
-      var nw = bounds.getNorthWest();
-      var se = bounds.getSouthEast();
-      var sw = bounds.getSouthWest();
-      var nemesh = cal_meshcode1( ne.lat, ne.lng );
-      var nwmesh = cal_meshcode1( nw.lat, nw.lng );
-      var semesh = cal_meshcode1( se.lat, se.lng );
-      var swmesh = cal_meshcode1( sw.lat, sw.lng );
-      var nmesh = +nemesh.substr( 0, 4 );
-      var smesh = +semesh.substr( 0, 4 );
-      for( var i = +swmesh; i < +semesh; i++ ){ //TODO
-        var mesh = '' + i;
-        var horizparam = mesh.substr( 4, 2 );
-        for( var j = smesh; j < nmesh; j++ ){
-          hashlist.push( '' + j + horizparam );
-          if( hashlist.length >= 100 ){
-            console.log(hashlist);
-            return hashlist;
-          }
-        }
-      }
-      */
-      console.log(hashlist);
+      //console.log(hashlist);
       return hashlist;
-    }else if( prefix.length == 6 ){
+    }else if( prefix.length == 4 ){
       return tohash( RANGE64 );
     }
     return tohash( RANGE100 );
@@ -256,29 +236,29 @@ var jisx0410meshAdapter = {
   encode: function( centroid, precision ){
     var zoom = precision-1;
     if( zoom < 6 ){
-      return '' + cal_meshcode1( centroid.lat, centroid.lng );
+      return '' + cal_meshcode1( centroid.lat, centroid.lng ).substring(2);
     }else if( zoom < 10 ){
-      return '' + cal_meshcode1( centroid.lat, centroid.lng );
+      return '' + cal_meshcode1( centroid.lat, centroid.lng ).substring(2);
     }else if( zoom < 14 ){
-      return '' + cal_meshcode2( centroid.lat, centroid.lng );
+      return '' + cal_meshcode2( centroid.lat, centroid.lng ).substring(2);
     }else if( zoom < 19 ){
-      return '' + cal_meshcode3( centroid.lat, centroid.lng );
+      return '' + cal_meshcode3( centroid.lat, centroid.lng ).substring(2);
     }
   },
   bbox: function( str ){
-    var box = meshcode_to_latlong_grid( '' + str );
+    var box = meshcode_to_latlong_grid( '20' + str );
     return { minlat: box.lat0, minlng: box.long0, maxlat: box.lat1, maxlng: box.long1 };
   },
   layers: function( currentHash, zoom ){
     var layers = {};
     if( zoom >= 6 ){
-      layers[ currentHash.substr( 0, 4 ) ] = true;
+      layers[ currentHash.substr( 0, 2 ) ] = true;
     }
     if( zoom >= 10 ){
-      layers[ currentHash.substr( 0, 6 ) ] = true;
+      layers[ currentHash.substr( 0, 4 ) ] = true;
     }
     if( zoom >= 14 ){
-      layers[ currentHash.substr( 0, 8 ) ] = true;
+      layers[ currentHash.substr( 0, 6 ) ] = true;
     }
     return layers;
   },
@@ -327,15 +307,15 @@ var zoomToHashChars = function( zoom ){
 
 var zoomToMeshChars = function( zoom ){
   if( zoom < 6 ){
-    return 4;
+    return 2;
   }else if( zoom < 10 ){
-    return 4;
+    return 2;
   }else if( zoom < 14 ){
-    return 6;
+    return 4;
   }else if( zoom < 19 ){
-    return 8;
+    return 6;
   }
-  return 8;
+  return 6;
 };
 
 function updateLayer(){
