@@ -3,7 +3,7 @@ var map = L.map('map');
 
 // create the tile layer with correct attribution
 // var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-// var osmAttrib = 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+// var osmAttrib = 'Map data (c) <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
 // var osm = new L.TileLayer( osmUrl );
 
 L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
@@ -14,7 +14,7 @@ L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
 L.control.geocoder('search-fljxAAA').addTo(map);
 
 // start the map in South-East England
-map.setView( new L.LatLng( 51.5072, 0.1275 ), 0 );
+map.setView( new L.LatLng( 35.665664, 139.7509 ), 6 );
 
 $(document).ready(function() {
   $('#buttons button').on('click', function(event) {
