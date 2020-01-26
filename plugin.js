@@ -183,21 +183,19 @@ var hashAdapter = {
 };
 
 var RANGE100 = [];
-for( var i = 0; i < 10; i += 2 ){
+for( var i = 0; i < 10; i++ ){
   RANGE100.push( '0' + i );
 }
-for( var j = 1; j < 10; j++ ){
-  for( var i = j % 2; i < 10; i += 2 ){
-    RANGE100.push( '' + ( j*10 + i ) );
-  }
+for( var i = 10; i < 100; i++ ){
+  RANGE100.push( '' + i );
 }
 
 var RANGE64 = [];
-for( var i = 0; i < 8; i += 2 ){
+for( var i = 0; i < 8; i++ ){
   RANGE64.push( '0' + i );
 }
 for( var j = 1; j < 8; j++ ){
-  for( var i = j % 2; i < 8; i += 2 ){
+  for( var i = 0; i < 8; i++ ){
     RANGE64.push( '' + ( j*10 + i ) );
   }
 }
@@ -334,9 +332,9 @@ function updateLayer(){
 
   var hashPrefix = currentHash.substr( 0, hashLength );
 
-  console.log( 'zoom', zoom );
+  // console.log( 'zoom', zoom );
   // console.log( 'prevHash', prevHash );
-  console.log( 'hashPrefix', hashPrefix );
+  // console.log( 'hashPrefix', hashPrefix );
 
   // performance tweak
   // @todo: not that performant?
