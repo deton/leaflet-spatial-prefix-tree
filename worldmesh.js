@@ -1,6 +1,6 @@
 //
-// Copyright (c) 2015,2016,2017 Research Institute for World Grid Squares 
-// Aki-Hiro Sato
+// Copyright (c) 2015-2019 Research Institute for World Grid Squares 
+// Dr. Aki-Hiro Sato
 // All rights reserved. 
 // This library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,20 +12,21 @@
 //
 // Version 1.0: Released on 2 February 2017
 // Version 1.01: Released on 6 February 2017
+// Version 1.1: Released on 21 November 2019
 //
 // Written by Dr. Aki-Hiro Sato    
-// Graduate School of Informatics, Kyoto University
+// Yokohama City University
 // and 
 // Japan Science and Technology Agency (JST)
 //
 // Contact:
-// Address: Yoshida Honmachi, Sakyo-ku, Kyoto 606-8501 Japan
-// E-mail: aki@i.kyoto-u.ac.jp
-// TEL: +81-75-753-5515
+// Address: 22-2, Seto, Kanazawa-ku, Yokohama, Kanagawa 236-0027 Japan
+// E-mail: ahsato@yokohama-cu.ac.jp
 //
-// Two types of functions are defined in this library.
+// Three types of functions are defined in this library.
 // 1. calculate representative geographical position(s) (latitude, longitude) of a grid square from a grid square code
 // 2. calculate a grid square code from a geographical position (latitude, longitude)
+// 3. calculate geodesic distance and size of grid square (representative lengths and area)
 //
 // 1.
 //
@@ -67,6 +68,18 @@
 // ABBBBBCCDDE : 500m grid square code (15 arc-seconds for latitude, 22.5 arc-seconds for longitude) (11 digits)
 // ABBBBBCCDDEF : 250m grid square code (7.5 arc-seconds for latitude, 11.25 arc-seconds for longitude) (12 digits)
 // ABBBBBCCDDEFG : 125m grid square code (3.75 arc-seconds for latitude, 5.625 arc-seconds for longitude) (13 digits)
+//
+// 3.
+//
+// Calculate geodesic distance and size of world grid square 
+//
+// Vincenty(latitude1, longitude1, latitude2, longitude)
+// : calculate geodesitc distance between two points (latitude1, longitude1) and (latitude2, longitude2) placed on the WGS84 Earth ellipsoid based on the Vincenty's formulae (1975)
+// cal_area_from_meshcode(meshcode)
+// : calculate size (northern west-to-east span H1, sothern west-to-east span H2, north-to-south span W, and area approximated by trapezoide A) of world grid square indicated by meshcode
+// cal_area_from_latlong(latlong)
+// : calculate size (northern west-to-east span H1, sothern west-to-east span H2, north-to-south span W, and area approximated by trapezoid A) of a trapezoid on the WGS84 Earth ellipoid indicated by (latlong$lat0, latlong$long0, latlong$lat1, latlong$long1)
+//
 
 function meshcode_to_latlong_grid(meshcode){
     code = meshcode + '';
@@ -359,26 +372,93 @@ function cal_meshcode6(latitude, longitude){
     return(mesh);
 }
 // 
+
 function cal_meshcode(latitude,longitude){
     return(cal_meshcode3(latitude,longitude));
 }
+
 function cal_meshcode1(latitude,longitude){
     mesh = cal_meshcode6(latitude,longitude);
     return(mesh.substr(0,6));
 }
+
 function cal_meshcode2(latitude,longitude){
     mesh = cal_meshcode6(latitude,longitude);
     return(mesh.substr(0,8));
 }
+
 function cal_meshcode3(latitude,longitude){
     mesh = cal_meshcode6(latitude,longitude);
     return(mesh.substr(0,10));
 }
+
 function cal_meshcode4(latitude,longitude){
     mesh = cal_meshcode6(latitude,longitude);
     return(mesh.substr(0,11));
 }
+
 function cal_meshcode5(latitude,longitude){
     mesh = cal_meshcode6(latitude,longitude);
     return(mesh.substr(0,12));
+}
+
+function Vincenty(latitude1,longitude1,latitude2,longitude2){
+    // WGS84
+    f = 1/298.257223563;
+    a = 6378137.0;
+    b = 6356752.314245;
+    //
+    L = (longitude1 - longitude2)/180*Math.PI;
+    U1 = Math.atan((1-f)*Math.tan(latitude1/180*Math.PI));
+    U2 = Math.atan((1-f)*Math.tan(latitude2/180*Math.PI));
+    lambda = L;
+    dlambda = 10;
+    while(Math.abs(dlambda) > 1e-12){
+       cs = Math.cos(U2)*Math.sin(lambda);
+       cscc = Math.cos(U1)*Math.sin(U2)-Math.sin(U1)*Math.cos(U2)*Math.cos(lambda);
+       sinsigma = Math.sqrt(cs*cs + cscc*cscc);
+       cossigma = Math.sin(U1)*Math.sin(U2)+Math.cos(U1)*Math.cos(U2)*Math.cos(lambda);
+       sigma = Math.atan(sinsigma/cossigma);
+       sinalpha = Math.cos(U1)*Math.cos(U2)*Math.sin(lambda)/sinsigma;
+       cos2alpha = 1 - sinalpha*sinalpha;
+       if(cos2alpha == 0.0){
+         C = 0.0;
+         lambda0 = L + f*sinalpha*sigma;
+       }else{
+         cos2sigmam = cossigma - 2*Math.sin(U1)*Math.sin(U2)/cos2alpha;
+         C = f/16*cos2alpha*(4+f*(4-3*cos2alpha));
+         lambda0 = L + (1-C)*f*sinalpha*(sigma + C*sinsigma*(cos2sigmam + C*cossigma*(-1+2*cos2sigmam*cos2sigmam)));
+       }
+       dlambda = lambda0 - lambda;
+       lambda = lambda0;
+    }
+    if(C == 0.0){
+      A = 1.0;
+      dsigma = 0.0;
+    }else{
+      u2 = cos2alpha * (a*a-b*b)/(b*b);
+      A = 1 + u2/16384*(4096 + u2 * (-768 + u2*(320-175*u2)));
+      B = u2/1024*(256+u2*(-128+u2*(74-47*u2)));
+      dsigma = B*sinsigma*(cos2sigmam + 1/4*B*(cossigma*(-1+2*cos2sigmam*cos2sigmam)-1/6*B*cos2sigmam*(-3+4*sinsigma*sinsigma)*(-3+4*cos2sigmam*cos2sigmam)));
+    }
+    s = b*A*(sigma-dsigma);
+    return(s);
+}
+
+function cal_area_from_meshcode(meshcode){
+    latlong = meshcode_to_latlong_grid(meshcode);
+    return(cal_area_from_latlong(latlong));
+}
+
+function cal_area_from_latlong(latlong){
+    W1 = Vincenty(latlong['lat0'],latlong['long0'],latlong['lat0'],latlong['long1']);
+    W2 = Vincenty(latlong['lat1'],latlong['long0'],latlong['lat1'],latlong['long1']);
+    H = Vincenty(latlong['lat0'],latlong['long0'],latlong['lat1'],latlong['long0']);
+    A = (W1+W2)*H*0.5;
+    var xx = new Object;
+    xx['W1'] = W1;
+    xx['W2'] = W2;
+    xx['H'] = H;
+    xx['A'] = A;
+    return(xx);
 }
